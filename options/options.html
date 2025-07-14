@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>LinkedIn Auto-DM Options</title>
+  <style>
+    body { font-family: sans-serif; width: 450px; padding: 10px; }
+    h1, h2 { font-size: 1.2em; }
+    label { display: block; margin-top: 10px; font-weight: bold; }
+    input[type="text"], textarea { width: 100%; padding: 5px; margin-top: 5px; box-sizing: border-box; }
+    textarea { height: 100px; }
+    button { margin-top: 20px; padding: 10px 15px; cursor: pointer; }
+    #status { margin-top: 10px; color: green; }
+    .category { border: 1px solid #ccc; padding: 10px; margin-top: 10px; border-radius: 5px; }
+    .category-header { display: flex; justify-content: space-between; align-items: center; }
+    .remove-category { background-color: #f44336; color: white; border: none; padding: 5px 10px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>LinkedIn Auto-DM Options</h1>
+
+  <label for="apiKey">OpenAI API Key:</label>
+  <input type="text" id="apiKey">
+
+  <h2>Classifier Prompt</h2>
+  <label for="basePrompt">Base System Prompt:</label>
+  <textarea id="basePrompt"></textarea>
+
+  <h2>Message Templates</h2>
+  <p>Use {{fname}} for first name and {{insight}} for the generated insight.</p>
+  <div id="categories-container"></div>
+  <button id="add-category">Add New Category</button>
+
+  <hr style="margin-top: 30px;">
+
+  <button id="save">Save All Settings</button>
+  <div id="status"></div>
+
+  <script src="options.js"></script>
+</body>
+</html>
