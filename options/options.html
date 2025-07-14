@@ -18,8 +18,17 @@
 <body>
   <h1>LinkedIn Auto-DM Options</h1>
 
-  <label for="apiKey">OpenAI API Key:</label>
+  <label for="apiKey">API Key:</label>
   <input type="text" id="apiKey">
+
+  <label for="aiProvider">AI Provider:</label>
+  <select id="aiProvider">
+    <option value="openai">OpenAI</option>
+    <option value="gemini">Google Gemini</option>
+  </select>
+
+  <label for="modelName">Model Name:</label>
+  <input type="text" id="modelName" placeholder="e.g., gpt-4o-mini, gemini-1.5-flash-latest">
 
   <h2>Classifier Prompt</h2>
   <label for="basePrompt">Base System Prompt:</label>

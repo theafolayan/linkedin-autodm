@@ -4,6 +4,8 @@ const storage = {
 };
 
 const apiKeyInput = document.getElementById('apiKey');
+const aiProviderSelect = document.getElementById('aiProvider');
+const modelNameInput = document.getElementById('modelName');
 const basePromptTextarea = document.getElementById('basePrompt');
 const categoriesContainer = document.getElementById('categories-container');
 const addCategoryButton = document.getElementById('add-category');
@@ -56,15 +58,16 @@ function createCategoryElement(name = '', template = '', isNew = false) {
 }
 
 async function loadOptions() {
-    const data = await storage.get(['apiKey', 'basePrompt', 'categories']);
+    const data = await storage.get(['apiKey', 'aiProvider', 'modelName', 'basePrompt', 'categories']);
     apiKeyInput.value = data.apiKey || '';
+    aiProviderSelect.value = data.aiProvider || 'openai';
+    modelNameInput.value = data.modelName || (aiProviderSelect.value === 'openai' ? 'gpt-4o-mini' : 'gemini-1.5-flash-latest');
     basePromptTextarea.value = data.basePrompt || DEFAULT_PROMPT;
 
     categoriesContainer.innerHTML = '';
     const categories = data.categories || [
         { name: 'Executive', template: 'Hi {{fname}}, noticed your executive role. I imagine {{insight}} is a constant challenge. Worth a chat?' },
         { name: 'HR', template: 'Hi {{fname}}, with your HR background, I bet {{insight}} is top of mind. Could we explore solutions?' },
-        { name: 'HMO', template: 'Hi {{fname}}, in the HMO space, {{insight}} must be a key focus. Open to discussing how we can help?' },
     ];
 
     if (categories.length > 0) {
@@ -73,14 +76,16 @@ async function loadOptions() {
 }
 
 async function saveOptions() {
-    const apiKey = apiKeyInput.value;
-    const basePrompt = basePromptTextarea.value;
+    const apiKey = apiKeyInput.value.trim();
+    const aiProvider = aiProviderSelect.value;
+    const modelName = modelNameInput.value.trim();
+    const basePrompt = basePromptTextarea.value.trim();
     const categories = [];
 
     document.querySelectorAll('.category').forEach(catDiv => {
         const name = catDiv.querySelector('.category-name').value.trim();
         const template = catDiv.querySelector('.category-template').value.trim();
-        if (name) { // Only save if name is not empty
+        if (name) {
             categories.push({ name, template });
         }
     });
@@ -90,21 +95,28 @@ async function saveOptions() {
         statusDiv.style.color = 'red';
         return;
     }
-
+     if (!modelName) {
+        statusDiv.textContent = 'Error: Model Name is required.';
+        statusDiv.style.color = 'red';
+        return;
+    }
     if (categories.length === 0) {
         statusDiv.textContent = 'Error: At least one category is required.';
         statusDiv.style.color = 'red';
         return;
     }
 
-
-    await storage.set({ apiKey, basePrompt, categories });
+    await storage.set({ apiKey, aiProvider, modelName, basePrompt, categories });
     statusDiv.textContent = 'Settings saved.';
     statusDiv.style.color = 'green';
     setTimeout(() => {
         statusDiv.textContent = '';
     }, 2000);
 }
+
+aiProviderSelect.addEventListener('change', () => {
+    modelNameInput.value = aiProviderSelect.value === 'openai' ? 'gpt-4o-mini' : 'gemini-1.5-flash-latest';
+});
 
 addCategoryButton.addEventListener('click', () => createCategoryElement('', '', true));
 saveButton.addEventListener('click', saveOptions);

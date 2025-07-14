@@ -9,17 +9,20 @@ const storage = {
 
 let settings = {
     apiKey: null,
+    aiProvider: 'openai',
+    modelName: 'gpt-4o-mini',
     basePrompt: '',
     categories: [],
 };
 let queue = [];
 let isProcessing = false;
 
-// Load all settings from storage at startup
 async function loadInitialData() {
-    const data = await storage.get(['apiKey', 'basePrompt', 'categories']);
+    const data = await storage.get(['apiKey', 'aiProvider', 'modelName', 'basePrompt', 'categories']);
     settings = {
         apiKey: data.apiKey,
+        aiProvider: data.aiProvider || 'openai',
+        modelName: data.modelName || 'gpt-4o-mini',
         basePrompt: data.basePrompt,
         categories: data.categories || [],
     };
@@ -35,7 +38,6 @@ chrome.runtime.onStartup.addListener(() => {
     loadInitialData();
 });
 
-// Listen for storage changes to update settings
 chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local') {
         console.log("Settings changed, reloading...");
@@ -43,7 +45,6 @@ chrome.storage.onChanged.addListener((changes, area) => {
     }
 });
 
-// Mock scanner for demonstration purposes
 function startMockScanner() {
     console.log("Starting mock scanner...");
     setInterval(() => {
@@ -51,7 +52,7 @@ function startMockScanner() {
             console.log("Mock scanner found a new connection.");
             const mockProfile = {
                 id: `mock-${Date.now()}`,
-                url: 'https://www.linkedin.com/in/williamhgates/', // A public profile for testing
+                url: 'https://www.linkedin.com/in/williamhgates/',
             };
             queue.push(mockProfile);
             pump();
@@ -62,15 +63,13 @@ function startMockScanner() {
 startMockScanner();
 
 async function pump() {
-    if (isProcessing || queue.length === 0) {
-        return;
-    }
+    if (isProcessing || queue.length === 0) return;
     isProcessing = true;
     const currentProfile = queue.shift();
     console.log("Processing profile:", currentProfile);
 
-    if (!settings.apiKey || !settings.categories || settings.categories.length === 0) {
-        console.error("API key or categories not configured.");
+    if (!settings.apiKey || !settings.modelName || !settings.categories || settings.categories.length === 0) {
+        console.error("API key, model name, or categories not configured.");
         markDone(currentProfile.id);
         return;
     }
@@ -80,7 +79,6 @@ async function pump() {
 
         const tabListener = async (message, sender) => {
             if (sender.tab?.id !== tab.id || message.id !== currentProfile.id) return;
-
             chrome.runtime.onMessage.removeListener(tabListener);
             if (message.type === 'PROFILE_TEXT') {
                 await handleProfileText(message, tab.id);
@@ -96,14 +94,13 @@ async function pump() {
             if (tabId === tab.id && info.status === 'complete') {
                 chrome.tabs.onUpdated.removeListener(onUpdatedListener);
                 await chrome.scripting.executeScript({
-                    target: { tabId: tab.id },
-                    files: ['content/profileScraper.js'],
+                    target: { tabId },
+                    files: ['content/profileScraper.js']
                 });
                 await chrome.tabs.sendMessage(tab.id, { type: 'SCRAPE_PROFILE', id: currentProfile.id });
             }
         };
         chrome.tabs.onUpdated.addListener(onUpdatedListener);
-
     } catch (error) {
         console.error("Error opening profile tab:", error);
         markDone(currentProfile.id);
@@ -113,7 +110,7 @@ async function pump() {
 async function handleProfileText({ id, text, fname }, tabId) {
     try {
         const categoryNames = settings.categories.map(c => c.name);
-        const { send, category, insight } = await classify(settings.apiKey, settings.basePrompt, categoryNames, text);
+        const { send, category, insight } = await classify(settings.aiProvider, settings.apiKey, settings.modelName, settings.basePrompt, categoryNames, text);
         console.log("Classification result:", { send, category, insight });
 
         if (!send) {
@@ -131,7 +128,7 @@ async function handleProfileText({ id, text, fname }, tabId) {
             return;
         }
 
-        const dmText = await personalise(settings.apiKey, categoryConfig.template, fname, insight);
+        const dmText = await personalise(settings.aiProvider, settings.apiKey, settings.modelName, categoryConfig.template, fname, insight);
         console.log(`Personalised message for ${fname}: ${dmText}`);
 
         const dmListener = async (message) => {
@@ -147,10 +144,9 @@ async function handleProfileText({ id, text, fname }, tabId) {
 
         await chrome.scripting.executeScript({
             target: { tabId },
-            files: ['content/messenger.js'],
+            files: ['content/messenger.js']
         });
         await chrome.tabs.sendMessage(tabId, { type: 'SEND_DM', text: dmText, id });
-
     } catch (error) {
         console.error("Error during processing:", error);
         await chrome.tabs.remove(tabId);
